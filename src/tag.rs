@@ -102,9 +102,6 @@ pub trait ProtoTagLoader {
 
 
     fn payload(&mut self);
-
-
-    fn sub_payload_size(sub_tag_type: TagType) -> u32;
 }
 
 impl ProtoTagLoader for ProtoTag {
@@ -367,19 +364,5 @@ impl ProtoTagLoader for ProtoTag {
                 self.payload = TagPayload::Invalid;
             }
         }
-    }
-
-
-    fn sub_payload_size(sub_tag_type: TagType) -> u32 {
-        return match sub_tag_type {
-            TagType::End => 0,
-            TagType::Byte => 1,
-            TagType::Short => 2,
-            TagType::Int => 4,
-            TagType::Long => 8,
-            TagType::Float => 4,
-            TagType::Double => 8,
-            _ => 0,
-        };
     }
 }
