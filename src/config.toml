@@ -1,0 +1,4 @@
+# Configuration
+world_dir = "C:/Path/to/world/dir/"
+output_dir = "C:/Path/to/output/dir/"
+texture_path = "C:/Path/to/miecraft.jar/or/texture/pack.zip"
