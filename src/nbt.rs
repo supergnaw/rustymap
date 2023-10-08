@@ -4,13 +4,11 @@ use crate::tag::*;
 pub struct NBT {
     bytes: Vec<u8>,
     tags: Vec<Tag>,
-    cur: u32,
+    cur: usize,
 }
 
 pub trait NBTLoader {
     fn new(bytes: &Vec<u8>) -> Self;
-
-
     fn parse_tag(&mut self);
 }
 
@@ -27,10 +25,10 @@ impl NBTLoader for NBT {
 
 
     fn parse_tag(&mut self) {
-        while (self.cur as usize) < self.bytes.len() {
+        while (self.cur) < self.bytes.len() {
             let bytes: Vec<u8> = self.bytes[(self.cur as usize)..].to_vec();
             let tag = Tag::new(bytes);
-            self.cur += &tag.cur;
+            self.cur += tag.cur;
             self.tags.push(tag);
         }
     }

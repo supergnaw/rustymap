@@ -52,15 +52,8 @@ pub struct RegionHeader {
     size: usize,
 }
 
-pub struct Coords {
-    x: i32,
-    z: i32,
-}
-
 pub trait RegionLoader {
     fn new(region_path: &str) -> Self;
-
-
     fn load_chunks(&mut self);
 }
 
