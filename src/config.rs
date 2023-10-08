@@ -13,7 +13,6 @@ pub fn load(filename: &str) -> Config {
     let contents = match fs::read_to_string(filename) {
         Ok(contents) => contents,
         Err(err) => {
-            // Write `msg` to `stderr`.
             eprintln!("Could not read file `{}`: {:?}", filename, err);
             exit(1);
         }
@@ -21,7 +20,6 @@ pub fn load(filename: &str) -> Config {
     let config: Config = match de::from_str(&contents) {
         Ok(config) => config,
         Err(error) => {
-            // Write `msg` to `stderr`.
             eprintln!("Unable to load data from `{}`: {:?}", filename, error);
             exit(1);
         }

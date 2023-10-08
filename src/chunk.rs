@@ -31,7 +31,7 @@ use crate::nbt::*;
 pub struct Chunk {
     length: u32,
     compression_type: usize,
-    nbt: NBT,
+    pub nbt: NBT,
 }
 
 pub trait ChunkLoader {
@@ -45,7 +45,7 @@ impl ChunkLoader for Chunk {
     fn new(bytes: Vec<u8>) -> Self {
         let len: u32 = u32::from_be_bytes(bytes[0..4].try_into().unwrap());
         let comp_type: usize = usize::from(bytes[4]);
-        let raw_bytes: Vec<u8> = bytes[5..5 + len as usize].to_vec();
+        let raw_bytes: Vec<u8> = bytes[5..4 + len as usize].to_vec();
         let payload = Chunk::decompress(&raw_bytes, &comp_type);
         let nbt: NBT = NBT::new(&payload);
         let chunk = Chunk {

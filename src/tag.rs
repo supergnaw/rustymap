@@ -10,7 +10,7 @@
 //! |-----------------|----|-------------|-------------|-------|
 //! | DESCRIPTION --> | id | name length | name utf-8  | data  |
 
-use std::arch::x86_64::_mm256_loadu_si256;
+use std::any::Any;
 use std::cmp::min;
 use std::i32;
 use std::process::exit;
@@ -34,6 +34,12 @@ pub enum TagType {
 }
 
 #[derive(Debug, PartialOrd, PartialEq)]
+pub struct Tag {
+    pub name: String,
+    pub payload: TagPayload,
+}
+
+#[derive(Debug, PartialOrd, PartialEq)]
 pub enum TagPayload {
     End,
     Byte(i8),
@@ -51,12 +57,21 @@ pub enum TagPayload {
     Invalid,
 }
 
-#[derive(Debug, PartialOrd, PartialEq)]
-pub struct Tag {
-    pub tag_type: TagType,
-    pub name: String,
-    pub payload: TagPayload,
-    pub cur: usize,
+pub trait PayloadReader {
+    fn read<T>(&self) -> Option<T> where T: 'static + Clone;
+    fn as_any(&self) -> &dyn Any;
+}
+
+impl PayloadReader for TagPayload {
+    fn read<T>(&self) -> Option<T>
+    where T: 'static + Clone, {
+        let payload = &self.as_any();
+        payload.downcast_ref::<T>().cloned()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 pub trait TagLoader {
@@ -67,10 +82,10 @@ impl TagLoader for Tag {
     fn new(bytes: Vec<u8>) -> Self {
         let prototag = ProtoTag::new(bytes);
         let tag = Tag {
-            tag_type: prototag.tag_type,
+            // tag_type: prototag.tag_type,
             name: prototag.name,
             payload: prototag.payload,
-            cur: prototag.cur,
+            // cur: prototag.cur,
         };
         // println!("### {:?}", &tag);
         tag
@@ -78,11 +93,11 @@ impl TagLoader for Tag {
 }
 
 #[derive(Debug, PartialOrd, PartialEq)]
-struct ProtoTag {
-    tag_type: TagType,
-    name: String,
-    payload: TagPayload,
-    cur: usize,
+pub struct ProtoTag {
+    pub(crate) tag_type: TagType,
+    pub name: String,
+    pub payload: TagPayload,
+    pub cur: usize,
     cur_hist: Vec<usize>,
     bytes: Vec<u8>,
 }
@@ -128,13 +143,13 @@ impl ProtoTagLoader for ProtoTag {
         // println!("detected tag type {:?} in parse()", &self.tag_type);
         if TagType::End == self.tag_type {
             self.payload = self.read_payload(TagType::End);
-            return
+            return;
         }
 
         self.name = self.read_name();
         self.payload = self.read_payload(self.tag_type);
 
-        return
+        return;
     }
 
     fn move_cur(&mut self, num: usize, from_start: bool) {
@@ -143,7 +158,7 @@ impl ProtoTagLoader for ProtoTag {
             true => {
                 // println!("resetting cursor: {:?} => {:?}", &self.cur, &num);
                 self.cur = num;
-            },
+            }
             false => {
                 // println!("adjusting cursor: {:?} += {:?}", &self.cur, &num);
                 self.cur += num;
@@ -220,11 +235,11 @@ impl ProtoTagLoader for ProtoTag {
         }
 
         let bytes = self.read_bytes(len);
-        match String::from_utf8( (*bytes).to_vec()) {
+        match String::from_utf8((*bytes).to_vec()) {
             Ok(utf8) => {
                 // println!("read utf8 bytes: {:?}", &utf8);
                 return utf8;
-            },
+            }
             Err(_) => {
                 // println!("Error trying to parse UTF8 string.");
                 dbg!(&len);
@@ -375,10 +390,10 @@ impl ProtoTagLoader for ProtoTag {
 
                     if TagType::End == tag_type {
                         let new_tag = Tag {
-                            tag_type,
+                            // tag_type,
                             name: "".to_string(),
                             payload: TagPayload::End,
-                            cur: self.cur,
+                            // cur: self.cur,
                         };
                         tags.push(new_tag);
                         // println!("compound tag ended: {:?}", &tags);
@@ -400,10 +415,10 @@ impl ProtoTagLoader for ProtoTag {
                         proto_tag.parse();
 
                         let new_tag = Tag {
-                            tag_type: proto_tag.tag_type,
+                            // tag_type: proto_tag.tag_type,
                             name: proto_tag.name,
                             payload: proto_tag.payload,
-                            cur: proto_tag.cur,
+                            // cur: proto_tag.cur,
                         };
 
                         // println!("adjusting cursor from recursive compound tag: {:?} => {:?}", &self.cur, &proto_tag.cur);
@@ -414,10 +429,10 @@ impl ProtoTagLoader for ProtoTag {
                         let payload = self.read_payload(tag_type);
 
                         let new_tag = Tag {
-                            tag_type,
+                            // tag_type,
                             name: tag_name,
                             payload,
-                            cur: self.cur,
+                            // cur: self.cur,
                         };
 
                         tags.push(new_tag);
@@ -455,7 +470,7 @@ impl ProtoTagLoader for ProtoTag {
                 // println!("Invalid tag type: {:?}", tag_type);
                 exit(42069);
             }
-        }
+        };
     }
 
     fn payload(&mut self) {
@@ -576,12 +591,17 @@ impl ProtoTagLoader for ProtoTag {
                 let sub_slice: Vec<u8> = Vec::<u8>::from(&self.bytes[self.cur as usize..]);
 
                 // parse the next tag
-                let next_tag: Tag = Tag::new(sub_slice);
+                // let next_tag: Tag = Tag::new(sub_slice);
+                let proto_tag: ProtoTag = ProtoTag::new(sub_slice);
 
                 // adjust our current cursor position
-                self.cur += next_tag.cur;
+                self.cur += proto_tag.cur;
 
                 // add the tag
+                let next_tag = Tag {
+                    name: proto_tag.name,
+                    payload: proto_tag.payload,
+                };
                 value.push(next_tag);
 
                 // finish payload

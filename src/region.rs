@@ -41,7 +41,7 @@ use crate::chunk::*;
 pub struct Region {
     region_path: String,
     region_headers: HashMap<String, RegionHeader>,
-    chunks: Vec<Chunk>,
+    pub chunks: Vec<Chunk>,
 }
 
 #[derive(Debug)]
@@ -119,5 +119,7 @@ impl RegionLoader for Region {
             let chunk = Chunk::new(chunk_buffer);
             self.chunks.push(chunk);
         }
+
+        println!(" - loaded {:?} chunks", &self.region_headers.len());
     }
 }
