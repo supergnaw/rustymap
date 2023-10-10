@@ -10,10 +10,10 @@
 //! |-----------------|----|-------------|-------------|-------|
 //! | DESCRIPTION --> | id | name length | name utf-8  | data  |
 
-use std::any::Any;
 use std::cmp::min;
 use std::i32;
 use std::process::exit;
+use crate::DEBUG;
 
 #[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub enum TagType {
@@ -33,13 +33,13 @@ pub enum TagType {
     Invalid,
 }
 
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(Debug, PartialOrd, PartialEq, Clone)]
 pub struct Tag {
     pub name: String,
     pub payload: TagPayload,
 }
 
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(Debug, PartialOrd, PartialEq, Clone)]
 pub enum TagPayload {
     End,
     Byte(i8),
@@ -57,23 +57,6 @@ pub enum TagPayload {
     Invalid,
 }
 
-pub trait PayloadReader {
-    fn read<T>(&self) -> Option<T> where T: 'static + Clone;
-    fn as_any(&self) -> &dyn Any;
-}
-
-impl PayloadReader for TagPayload {
-    fn read<T>(&self) -> Option<T>
-    where T: 'static + Clone, {
-        let payload = &self.as_any();
-        payload.downcast_ref::<T>().cloned()
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
 pub trait TagLoader {
     fn new(bytes: Vec<u8>) -> Self;
 }
@@ -82,12 +65,9 @@ impl TagLoader for Tag {
     fn new(bytes: Vec<u8>) -> Self {
         let prototag = ProtoTag::new(bytes);
         let tag = Tag {
-            // tag_type: prototag.tag_type,
             name: prototag.name,
             payload: prototag.payload,
-            // cur: prototag.cur,
         };
-        // println!("### {:?}", &tag);
         tag
     }
 }
@@ -104,27 +84,19 @@ pub struct ProtoTag {
 
 pub trait ProtoTagLoader {
     fn new(tag_bytes: Vec<u8>) -> Self;
-
     fn parse(&mut self);
-
     fn move_cur(&mut self, num: usize, from_start: bool);
-
     fn read_bytes(&mut self, num: usize) -> Vec<u8>;
     fn read_type(&mut self) -> TagType;
-
     fn tag_from_id(id: usize) -> TagType;
     fn read_utf8(&mut self, len: usize) -> String;
-
     fn bytes_to_utf8(bytes: Vec<u8>) -> String;
     fn read_name(&mut self) -> String;
     fn read_payload(&mut self, tag_type: TagType) -> TagPayload;
-
-    fn payload(&mut self);
 }
 
 impl ProtoTagLoader for ProtoTag {
     fn new(tag_bytes: Vec<u8>) -> Self {
-        // println!("called new(Vec<u8>[u8; {:?}])", &tag_bytes.len());
         let mut proto_tag = ProtoTag {
             bytes: tag_bytes,
             tag_type: TagType::Invalid,
@@ -138,9 +110,8 @@ impl ProtoTagLoader for ProtoTag {
     }
 
     fn parse(&mut self) {
-        // println!("called parse()");
+        if DEBUG { println!("parse() called") };
         self.tag_type = self.read_type();
-        // println!("detected tag type {:?} in parse()", &self.tag_type);
         if TagType::End == self.tag_type {
             self.payload = self.read_payload(TagType::End);
             return;
@@ -153,26 +124,25 @@ impl ProtoTagLoader for ProtoTag {
     }
 
     fn move_cur(&mut self, num: usize, from_start: bool) {
+        if DEBUG { println!("move_cur({:?}, {:?}) called", &num, &from_start) };
         self.cur_hist.push(num);
         match from_start {
             true => {
-                // println!("resetting cursor: {:?} => {:?}", &self.cur, &num);
                 self.cur = num;
             }
             false => {
-                // println!("adjusting cursor: {:?} += {:?}", &self.cur, &num);
                 self.cur += num;
             }
         }
     }
 
     fn read_bytes(&mut self, num: usize) -> Vec<u8> {
-        // println!("called read_bytes({:?})", &num);
+        if DEBUG { println!("read_bytes({:?}) called", &num) };
         // no need to read, return an empty vec
         if 0 == num { return Vec::new(); }
 
         // get the start of the next range of bytes to read
-        let start = self.cur as usize;
+        let start = self.cur;
 
         // calculate the total size of the range
         let end = min(start + num, self.bytes.len());
@@ -187,7 +157,7 @@ impl ProtoTagLoader for ProtoTag {
     }
 
     fn read_type(&mut self) -> TagType {
-        // println!("called read_type()");
+        if DEBUG { println!("read_type() called") };
         let byte = self.read_bytes(1)[0] as usize;
         return match byte {
             0 => TagType::End,
@@ -209,7 +179,7 @@ impl ProtoTagLoader for ProtoTag {
 
 
     fn tag_from_id(id: usize) -> TagType {
-        // println!("called tag_from_id({:?})", &id);
+        if DEBUG { println!("tag_from_id({:?}) called", &id) };
         return match id {
             0 => TagType::End,
             1 => TagType::Byte,
@@ -229,7 +199,7 @@ impl ProtoTagLoader for ProtoTag {
     }
 
     fn read_utf8(&mut self, len: usize) -> String {
-        // println!("called read_utf8({:?})", len);
+        if DEBUG { println!("read_utf8({:?}) called", &len) };
         if 0 == len {
             return String::new();
         }
@@ -237,23 +207,23 @@ impl ProtoTagLoader for ProtoTag {
         let bytes = self.read_bytes(len);
         match String::from_utf8((*bytes).to_vec()) {
             Ok(utf8) => {
-                // println!("read utf8 bytes: {:?}", &utf8);
                 return utf8;
             }
-            Err(_) => {
-                // println!("Error trying to parse UTF8 string.");
+            Err(err) => {
                 dbg!(&len);
                 dbg!(&self.tag_type);
                 dbg!(&self.name);
                 dbg!(&self.payload);
                 dbg!(&self.cur_hist);
+                println!("bytes: {:?}", self.bytes[0..100].to_vec());
+                println!("Error??? {:?}", err);
                 exit(42069);
             }
         }
     }
 
     fn bytes_to_utf8(bytes: Vec<u8>) -> String {
-        // println!("called bytes_to_utf8()");
+        if DEBUG { println!("bytes_to_utf8({:?}) called", bytes) };
         return match bytes.len() {
             0 => String::from(""),
             _ => {
@@ -263,7 +233,6 @@ impl ProtoTagLoader for ProtoTag {
                         let mut sub_bytes: [u8; 64] = [0u8; 64];
                         let min_length = min(sub_bytes.len(), bytes.len());
                         sub_bytes[..min_length].copy_from_slice(&bytes[..min_length]);
-                        // println!("Error trying to parse UTF8 string.");
                         exit(42069);
                     }
                 }
@@ -272,17 +241,14 @@ impl ProtoTagLoader for ProtoTag {
     }
 
     fn read_name(&mut self) -> String {
-        // println!("called read_name()");
         let len = u16::from_be_bytes(
             // todo: add error handling
             self.read_bytes(2).try_into().unwrap()
         ) as usize;
-        // println!("name length calculated as {:?} bytes", &len);
         self.read_utf8(len)
     }
 
     fn read_payload(&mut self, tag_type: TagType) -> TagPayload {
-        // println!("called read_payload({:?})", &tag_type);
         return match tag_type {
             // End of compound tag/no payload
             TagType::End => {
@@ -293,7 +259,6 @@ impl ProtoTagLoader for ProtoTag {
                 let bytes = self.read_bytes(1);
                 // todo: add error handling
                 let value = i8::from_be_bytes(bytes.try_into().unwrap());
-                // println!("parsed payload value: {:?}", value);
                 TagPayload::Byte(value)
             }
             // 2 bytes / 16 bits, signed, big endian
@@ -301,7 +266,6 @@ impl ProtoTagLoader for ProtoTag {
                 let bytes = self.read_bytes(2);
                 // todo: add error handling
                 let value = i16::from_be_bytes(bytes.try_into().unwrap());
-                // println!("parsed payload value: {:?}", value);
                 TagPayload::Short(value)
             }
             // 4 bytes / 32 bits, signed, big endian
@@ -309,7 +273,6 @@ impl ProtoTagLoader for ProtoTag {
                 let bytes = self.read_bytes(4);
                 // todo: add error handling
                 let value = i32::from_be_bytes(bytes.try_into().unwrap());
-                // println!("parsed payload value: {:?}", value);
                 TagPayload::Int(value)
             }
             // 8 bytes / 64 bits, signed, big endian
@@ -317,7 +280,6 @@ impl ProtoTagLoader for ProtoTag {
                 let bytes = self.read_bytes(8);
                 // todo: add error handling
                 let value = i64::from_be_bytes(bytes.try_into().unwrap());
-                // println!("parsed payload value: {:?}", value);
                 TagPayload::Long(value)
             }
             // 4 bytes / 32 bits, signed, big endian, IEEE 754-2008, binary32
@@ -325,7 +287,6 @@ impl ProtoTagLoader for ProtoTag {
                 let bytes = self.read_bytes(4);
                 // todo: add error handling
                 let value = f32::from_be_bytes(bytes.try_into().unwrap());
-                // println!("parsed payload value: {:?}", value);
                 TagPayload::Float(value)
             }
             // 8 bytes / 64 bits, signed, big endian, IEEE 754-2008, binary64
@@ -333,7 +294,6 @@ impl ProtoTagLoader for ProtoTag {
                 let bytes = self.read_bytes(8);
                 // todo: add error handling
                 let value = f64::from_be_bytes(bytes.try_into().unwrap());
-                // println!("parsed payload value: {:?}", value);
                 TagPayload::Double(value)
             }
             // A signed integer (4 bytes) size, then the bytes comprising an array of length size.
@@ -343,7 +303,6 @@ impl ProtoTagLoader for ProtoTag {
                     self.read_bytes(4).try_into().unwrap()
                 ) as usize;
                 let value = self.read_bytes(payload_size);
-                // println!("parsed payload value: {:?}", value);
                 TagPayload::ByteArray(value)
             }
             // An unsigned short (2 bytes) length, then a UTF-8 string resembled by length bytes.
@@ -352,9 +311,7 @@ impl ProtoTagLoader for ProtoTag {
                     // todo: add error handling
                     self.read_bytes(2).try_into().unwrap()
                 ) as usize;
-                // todo: add error handling
                 let value: String = self.read_utf8(payload_size);
-                // println!("parsed payload value: {:?}", value);
                 TagPayload::String(value)
             }
             // 1 byte of tag ID, 4 bytes signed as tag_count, then tag_count tags of ID
@@ -381,63 +338,86 @@ impl ProtoTagLoader for ProtoTag {
                 }
                 TagPayload::List(value)
             }
-
+            // A set of tags that continue until Tag::End
             TagType::Compound => {
                 let mut tags = vec![];
+
                 loop {
                     let tag_type = self.read_type();
-                    // println!("detected tag type {:?} in read_payload()", &tag_type);
 
+                    // this compound tag has ended
                     if TagType::End == tag_type {
+                        // convert the self ProtoTag into a regular Tag
                         let new_tag = Tag {
-                            // tag_type,
                             name: "".to_string(),
                             payload: TagPayload::End,
-                            // cur: self.cur,
                         };
+
+                        // eat your veggies
                         tags.push(new_tag);
-                        // println!("compound tag ended: {:?}", &tags);
-                        return TagPayload::Compound(tags);
+
+                        break;
                     }
 
                     let tag_name = self.read_name();
 
-                    if TagType::Compound == tag_type {
-                        let mut proto_tag = ProtoTag {
-                            tag_type,
-                            name: tag_name,
-                            payload: TagPayload::Invalid,
-                            cur: self.cur,
-                            cur_hist: vec![0],
-                            bytes: self.bytes.to_vec(),
-                        };
+                    // Just keep swimming...
+                    match tag_type {
+                        // this compound tag has ended
+                        TagType::End => {
+                            // convert the self ProtoTag into a regular Tag
+                            let new_tag = Tag {
+                                name: "".to_string(),
+                                payload: TagPayload::End,
+                            };
 
-                        proto_tag.parse();
+                            // eat your veggies
+                            tags.push(new_tag);
 
-                        let new_tag = Tag {
-                            // tag_type: proto_tag.tag_type,
-                            name: proto_tag.name,
-                            payload: proto_tag.payload,
-                            // cur: proto_tag.cur,
-                        };
+                            return TagPayload::Compound(tags);
+                        },
+                        // we have to go deeper
+                        TagType::Compound => {
+                            // instantiate a new ProtoTag instance to parse
+                            let mut proto_tag = ProtoTag {
+                                tag_type,
+                                name: tag_name,
+                                payload: TagPayload::Invalid,
+                                cur: self.cur,
+                                cur_hist: vec![0],
+                                bytes: self.bytes.to_vec(),
+                            };
 
-                        // println!("adjusting cursor from recursive compound tag: {:?} => {:?}", &self.cur, &proto_tag.cur);
-                        self.move_cur(proto_tag.cur, true);
+                            // parse the tag within a tag
+                            proto_tag.parse();
 
-                        tags.push(new_tag);
-                    } else {
-                        let payload = self.read_payload(tag_type);
+                            // convert from ProtoTag to Tag
+                            let new_tag = Tag {
+                                name: proto_tag.name,
+                                payload: proto_tag.payload,
+                            };
 
-                        let new_tag = Tag {
-                            // tag_type,
-                            name: tag_name,
-                            payload,
-                            // cur: self.cur,
-                        };
+                            // adjust the cursor in accordance with the tag we just parsed
+                            self.move_cur(proto_tag.cur, true);
 
-                        tags.push(new_tag);
+                            // add the new tag to our collection
+                            tags.push(new_tag);
+                        },
+                        // just your average Tag
+                        _ => {
+                            let payload = self.read_payload(tag_type);
+
+                            let new_tag = Tag {
+                                name: tag_name,
+                                payload,
+                            };
+
+                            tags.push(new_tag);
+                        }
                     }
                 }
+
+                TagPayload::Compound(tags)
             }
             // A signed integer size, then size number of TAG_Int's payloads.
             TagType::IntArray => {
@@ -467,176 +447,8 @@ impl ProtoTagLoader for ProtoTag {
                 TagPayload::LongArray(value)
             }
             _ => {
-                // println!("Invalid tag type: {:?}", tag_type);
                 exit(42069);
             }
         };
-    }
-
-    fn payload(&mut self) {
-        // println!("called payload()");
-        match self.tag_type {
-            // End of compound tag/no payload
-            TagType::End => {
-                self.payload = TagPayload::End;
-            }
-            // 1 byte / 8 bits, signed
-            TagType::Byte => {
-                let payload_size = 1;
-                let bytes = self.read_bytes(payload_size);
-                // todo: add error handling
-                let value = i8::from_be_bytes(bytes.try_into().unwrap());
-                self.payload = TagPayload::Byte(value);
-            }
-            // 2 bytes / 16 bits, signed, big endian
-            TagType::Short => {
-                let payload_size = 2;
-                let bytes = self.read_bytes(payload_size);
-                // todo: add error handling
-                let value = i16::from_be_bytes(bytes.try_into().unwrap());
-                self.payload = TagPayload::Short(value);
-            }
-            // 4 bytes / 32 bits, signed, big endian
-            TagType::Int => {
-                let payload_size = 4;
-                let bytes = self.read_bytes(payload_size);
-                // todo: add error handling
-                let value = i32::from_be_bytes(bytes.try_into().unwrap());
-                self.payload = TagPayload::Int(value);
-            }
-            // 8 bytes / 64 bits, signed, big endian
-            TagType::Long => {
-                let payload_size = 8;
-                let bytes = self.read_bytes(payload_size);
-                // todo: add error handling
-                let value = i64::from_be_bytes(bytes.try_into().unwrap());
-                self.payload = TagPayload::Long(value);
-            }
-            // 4 bytes / 32 bits, signed, big endian, IEEE 754-2008, binary32
-            TagType::Float => {
-                let payload_size = 4;
-                let bytes = self.read_bytes(payload_size);
-                // todo: add error handling
-                let value = f32::from_be_bytes(bytes.try_into().unwrap());
-                self.payload = TagPayload::Float(value);
-            }
-            // 8 bytes / 64 bits, signed, big endian, IEEE 754-2008, binary64
-            TagType::Double => {
-                let payload_size = 8;
-                let bytes = self.read_bytes(payload_size);
-                // todo: add error handling
-                let value = f64::from_be_bytes(bytes.try_into().unwrap());
-                self.payload = TagPayload::Double(value);
-            }
-            // A signed integer (4 bytes) size, then the bytes comprising an array of length size.
-            TagType::ByteArray => {
-                let payload_size = i32::from_be_bytes(
-                    // todo: add error handling
-                    self.read_bytes(4).try_into().unwrap()
-                ) as usize;
-                let value = self.read_bytes(payload_size);
-                self.payload = TagPayload::ByteArray(value);
-            }
-            // An unsigned short (2 bytes) length, then a UTF-8 string resembled by length bytes.
-            TagType::String => {
-                let payload_size = u16::from_be_bytes(
-                    // todo: add error handling
-                    self.read_bytes(2).try_into().unwrap()
-                ) as usize;
-                let bytes = self.read_bytes(payload_size);
-                // todo: add error handling
-                let value: String = ProtoTag::bytes_to_utf8(bytes.try_into().unwrap());
-                self.payload = TagPayload::String(value);
-            }
-            // 1 byte of tag ID, 4 bytes signed as tag_count, then tag_count tags of ID
-            TagType::List => {
-                // get the tag type id in the list
-                let subtag_id = self.read_bytes(1)[0];
-
-                // get the tag type type
-                let subtag_type = ProtoTag::tag_from_id(subtag_id as usize);
-
-                // get the count of subtags in list
-                let subtag_count = i32::from_be_bytes(
-                    // todo: add error handling
-                    self.read_bytes(4).try_into().unwrap()
-                ) as isize;
-
-                // prepare an empty list for the tags
-                let mut subtags: Vec<TagPayload> = vec![];
-
-                // do a barrel roll!
-                for i in 0..subtag_count {
-                    let subtag = self.read_payload(subtag_type);
-                    subtags.push(subtag);
-                    // this should be the same for all types, but could be causing me errors...
-                    // match subtag_type {
-                    //     _ => {
-                    //         let mut sub_bytes = vec![subtag_id, 0, 0];
-                    //         sub_bytes.extend(self.bytes[self.cur..].to_vec());
-                    //         let sub_tag = Tag::new(sub_bytes);
-                    //         self.cur += &sub_tag.cur;
-                    //         subtags.push(sub_tag);
-                    //     }
-                    // }
-                }
-                self.payload = TagPayload::List(subtags);
-            }
-
-            TagType::Compound => {
-                // create a new vec for tags
-                let mut value: Vec<Tag> = Vec::new();
-
-                // get remaining bytes as  slice
-                let sub_slice: Vec<u8> = Vec::<u8>::from(&self.bytes[self.cur as usize..]);
-
-                // parse the next tag
-                // let next_tag: Tag = Tag::new(sub_slice);
-                let proto_tag: ProtoTag = ProtoTag::new(sub_slice);
-
-                // adjust our current cursor position
-                self.cur += proto_tag.cur;
-
-                // add the tag
-                let next_tag = Tag {
-                    name: proto_tag.name,
-                    payload: proto_tag.payload,
-                };
-                value.push(next_tag);
-
-                // finish payload
-                self.payload = TagPayload::Compound(value);
-            }
-            // A signed integer size, then size number of TAG_Int's payloads.
-            TagType::IntArray => {
-                let payload_size = i32::from_be_bytes(
-                    // todo: add error handling
-                    self.read_bytes(4).try_into().unwrap()
-                ) as usize;
-                let bytes = self.read_bytes(payload_size * 4);
-                let value: Vec<i16> = bytes.chunks_exact(2)
-                    .map(|chunk| i16::from_ne_bytes([chunk[0], chunk[1]]))
-                    .collect();
-                self.payload = TagPayload::IntArray(value);
-            }
-            // A signed integer size, then size number of TAG_Long's payloads.
-            TagType::LongArray => {
-                let payload_size = i32::from_be_bytes(
-                    // todo: add error handling
-                    self.read_bytes(4).try_into().unwrap()
-                ) as usize;
-                let bytes = self.read_bytes(payload_size * 8);
-                let value: Vec<i64> = bytes.chunks_exact(8)
-                    .map(|chunk| i64::from_ne_bytes([
-                        chunk[0], chunk[1], chunk[2], chunk[3],
-                        chunk[4], chunk[5], chunk[6], chunk[7],
-                    ]))
-                    .collect();
-                self.payload = TagPayload::LongArray(value);
-            }
-            _ => {
-                self.payload = TagPayload::Invalid;
-            }
-        }
     }
 }
