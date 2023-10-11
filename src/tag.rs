@@ -11,7 +11,6 @@
 //! | DESCRIPTION --> | id | name length | name utf-8  | data  |
 
 use std::cmp::min;
-use std::i32;
 use std::process::exit;
 use crate::DEBUG;
 
@@ -111,13 +110,20 @@ impl ProtoTagLoader for ProtoTag {
 
     fn parse(&mut self) {
         if DEBUG { println!("parse() called") };
+        // read tag type
         self.tag_type = self.read_type();
-        if TagType::End == self.tag_type {
-            self.payload = self.read_payload(TagType::End);
-            return;
-        }
 
-        self.name = self.read_name();
+        // read tag name
+        self.name = match self.tag_type {
+            TagType::End => {
+                String::new()
+            }
+            _ => {
+                self.read_name()
+            }
+        };
+
+        // read tag payload
         self.payload = self.read_payload(self.tag_type);
 
         return;
@@ -229,10 +235,11 @@ impl ProtoTagLoader for ProtoTag {
             _ => {
                 match String::from_utf8((*bytes).to_vec()) {
                     Ok(utf8) => return utf8,
-                    Err(_) => {
+                    Err(err) => {
                         let mut sub_bytes: [u8; 64] = [0u8; 64];
                         let min_length = min(sub_bytes.len(), bytes.len());
                         sub_bytes[..min_length].copy_from_slice(&bytes[..min_length]);
+                        println!("Error trying to convert bytes to UTF8: {:?}\nbytes: {:?}", err, sub_bytes);
                         exit(42069);
                     }
                 }
@@ -355,6 +362,8 @@ impl ProtoTagLoader for ProtoTag {
 
                         // eat your veggies
                         tags.push(new_tag);
+
+                        // println!("ending tag {:?}", self.name);
 
                         break;
                     }
