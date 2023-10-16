@@ -35,6 +35,8 @@
 use std::{fs::File};
 use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
+use std::process::exit;
+// use std::process::exit;
 use crate::chunk::*;
 
 #[derive(Debug)]
@@ -48,7 +50,7 @@ pub struct Region {
 pub struct RegionHeader {
     offset: u64,
     updated: u32,
-    sectors: u32,
+    sectors: usize,
     size: usize,
 }
 
@@ -76,43 +78,46 @@ impl RegionLoader for Region {
         let mut updated_buffer = vec![0u8; 4096];
         let _ = region_file.read_exact(&mut updated_buffer);
 
-        for i in 0..1024 {
-            let cur = i * 4;
-
-            // get timestamp
+        for cur in (0..4096).step_by(4) {
+            // get updated timestamp
             let slice: [u8; 4] = updated_buffer[cur..cur + 4].try_into().unwrap();
-            let timestamp = u32::from_be_bytes(slice);
-            if 0 == timestamp {
-                continue;
-            }
+            let updated = u32::from_be_bytes(slice);
 
             // get byte offset
-            let sub_slice: [u8; 3] = location_buffer[cur..cur + 3].try_into().unwrap();
-            let mut slice = [0u8; 4];
-            slice[1..].copy_from_slice(&sub_slice);
-            let offset: u64 = (u32::from_be_bytes(slice) * 4096).into();
-            if 0 == offset {
-                continue;
-            }
+            let slice: [u8; 4] = [0, location_buffer[cur], location_buffer[cur+1], location_buffer[cur+2]];
+            let offset = u64::from(u32::from_be_bytes(slice) * 4096);
 
-            // get chunk size data
+            // get chunk sector count
             let mut slice = [0u8; 4];
             slice[3] = location_buffer[cur + 3].try_into().unwrap();
-            let sectors = u32::from_be_bytes(slice);
-            let size = (sectors * 4096) as usize;
+            let sectors = u32::from_be_bytes(slice) as usize;
+            let size = &sectors * 4096;
+
+            // non-generated chunk
+            if 0 == updated && 0 == size { continue; }
 
             // save chunk to table header
-            let chunk_header = RegionHeader {
-                offset: offset,
-                updated: timestamp,
-                sectors: sectors,
-                size: size,
-            };
-            self.region_headers.insert(i.to_string(), chunk_header);
+            let chunk_header = RegionHeader { offset, updated, sectors, size, };
+            self.region_headers.insert(cur.to_string(), chunk_header);
+        }
+
+        // let region = &self.region_headers["3676"];
+        for header in &self.region_headers {
+            let region = header.1;
+            if 0 == region.size { continue; }
+            let mut chunk_buffer = vec![0u8; region.size];
+            match region_file.seek(SeekFrom::Start(region.offset)) {
+                Ok(val) => {}
+                Err(err) => { format!("Failed to find file offset: {:?}", err); () }
+            }
+            match region_file.read_exact(&mut chunk_buffer) {
+                Ok(()) => {},
+                Err(err) => { format!("Failed to read chunk bytes: {:?}", err ); () }
+            }
         }
 
         for region_header in &self.region_headers {
-            let offset = u64::from(region_header.1.offset);
+            let offset = u64::from(region_header.1.offset) ;
             let _ = region_file.seek(SeekFrom::Start(offset));
             let mut chunk_buffer = vec![0u8; region_header.1.size];
             let _ = region_file.read_exact(&mut chunk_buffer);
