@@ -335,6 +335,9 @@ impl Tag {
         self.bytes[cursor..].to_vec()
     }
     pub fn payload_string(&self) -> String {
+        if TagType::End == self.tagtype {
+            return String::new()
+        }
         let cursor = 5 + i16::from_be_bytes([self.bytes[1], self.bytes[2]]) as usize;
         bytes_to_utf8(self.bytes[cursor..].to_vec())
     }
@@ -385,7 +388,7 @@ fn bytes_to_utf8(bytes: Vec<u8>) -> String {
     // return converted UTF8 string
     return match String::from_utf8(bytes.clone()) {
         Ok(utf8) => return utf8,
-        Err(err) => {
+        Err(_) => {
             let mut sub_bytes: [u8; 64] = [0u8; 64];
             let min_length = min(sub_bytes.len(), bytes.len());
             sub_bytes[..min_length].copy_from_slice(&bytes[..min_length]);

@@ -5,14 +5,15 @@ use crate::tag::*;
 #[derive(Debug)]
 pub struct NBT {
     pub(crate) tags: Tag,
+    // pub(crate) tags: Tag,
     bytes: Vec<u8>,
 }
 
 impl NBT {
-    pub fn new(bytes: &Vec<u8>) -> NBT {
+    pub fn new(bytes: &Vec<u8>) -> Self {
         NBT {
             tags: Tag::new(bytes.clone()),
-            bytes: bytes.clone(),
+            bytes: bytes.clone()
         }
     }
 
@@ -56,27 +57,27 @@ impl NBT {
         test_tags.push(test_list_long.clone());
         // Test_Int_Array
         let test_int_array = vec![11, 0, 14, 84, 101, 115, 116, 95, 73, 110, 116, 95, 65, 114, 114, 97, 121, 0, 0, 0, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4];
-        test_tags.push(test_int_array);
+        test_tags.push(test_int_array.clone());
         // Test_Long_Array
         let test_long_array = vec![12, 0, 15, 84, 101, 115, 116, 95, 76, 111, 110, 103, 95, 65, 114, 114, 97, 121, 0, 0, 0, 2, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8];
-        test_tags.push(test_long_array);
+        test_tags.push(test_long_array.clone());
         // Test_Compound
         let mut test_compound = vec![10, 0, 13, 84, 101, 115, 116, 95, 67, 111, 109, 112, 111, 117, 110, 100];
-        test_compound.extend(&test_byte);
-        test_compound.extend(&test_short);
-        test_compound.extend(&test_int);
-        test_compound.extend(&test_long);
-        test_compound.extend(&test_float);
-        test_compound.extend(&test_double);
-        test_compound.extend(&test_byte_array);
-        test_compound.extend(&test_string);
-        test_compound.extend(&test_int_array);
-        test_compound.extend(&test_long_array);
-        test_compound.extend(&test_list_byte);
-        test_compound.extend(&test_list_short);
-        test_compound.extend(&test_list_int);
-        test_compound.extend(&test_list_long);
-        test_compound.extend(&test_end);
+        test_compound.extend(test_byte.clone());
+        test_compound.extend(test_short.clone());
+        test_compound.extend(test_int.clone());
+        test_compound.extend(test_long.clone());
+        test_compound.extend(test_float.clone());
+        test_compound.extend(test_double.clone());
+        test_compound.extend(test_byte_array.clone());
+        test_compound.extend(test_string.clone());
+        test_compound.extend(test_int_array.clone());
+        test_compound.extend(test_long_array.clone());
+        test_compound.extend(test_list_byte.clone());
+        test_compound.extend(test_list_short.clone());
+        test_compound.extend(test_list_int.clone());
+        test_compound.extend(test_list_long.clone());
+        test_compound.extend(test_end.clone());
         test_tags.push(test_compound);
 
         println!("\n");
