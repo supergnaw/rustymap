@@ -1,3 +1,5 @@
+![repository-card](repository-card.png)
+
 # rustymap
 Render Minecraft Maps
 
@@ -15,3 +17,47 @@ Minecraft NBT data provides ample opportunity to learn how to convert data betwe
 
 #### File Input/Output
 This will be part of the process of reading data from the Minecraft files in raw format to parse as NBT data, as well as manipulating and saving image data back onto the filesystem.
+
+## Roadmap / ToDo List
+This is a list of things I have done/need to do which is updated as I think of things
+
+### Configuration Parser
+- [x] Decide on config structure
+- [x] Create full valid config file
+- [x] Implement default values for missing settings
+- [x] Add checks and exits for invalid inputs
+- [ ] Verify/create given output directory
+
+### Region Files
+- [x] Go through header table to identify chunks
+- [x] Decompress raw bytes to NBT bytes
+- [x] Implement NBT parser for region chunks
+
+### Chunks & Sections
+- [x] Extract data version of chunk
+- [x] Collect x, y, z coordinates
+- [x] Compile block states pallet list
+- [x] Calculate block and sky lighting values
+
+### Named Binary Tags (NBT)
+- [x] Identify each type of NBT format tag
+- [x] Create ability to ingest each data type
+- [x] Create an NBT struct of tags _(is this necessary?)_
+
+### Textures
+- [ ] Check for valid default/given texture path
+- [ ] Add directory traversal methods for `.jar`/`.zip` archives
+- [ ] Add drill-down methods for extracting block textures on-demand
+- [ ] Create staging area for texture files _(aka cache)_
+
+### Rendering
+- [ ] Render overworld top-down
+- [ ] Render nether top-down sans roof
+- [ ] Render any isometric chunk section
+- [ ] Render any isometric full chunk
+- [ ] Figure out how to handle non-solid blocks _(fence, stairs, etc.)_
+- [ ] Figure out how to ignore hidden blocks
+- [ ] Add settings to adjust rotation
+
+### Browser Viewer
+- [ ] ????? _(obviously JavaScript is the defacto standard for these types of projects, but Rust can do [web assembly](https://www.rust-lang.org/what/wasm) so I guess I could dive into that?)_
