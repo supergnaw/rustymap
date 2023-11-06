@@ -45,7 +45,7 @@ This is a list of things I have done/need to do which is updated as I think of t
 - [x] Create an NBT struct of tags _(is this necessary?)_
 
 ### Textures
-- [ ] Check for valid default/given texture path
+- [x] Check for valid default/given texture path
 - [ ] Add directory traversal methods for `.jar`/`.zip` archives
 - [ ] Add drill-down methods for extracting block textures on-demand
 - [ ] Create staging area for texture files _(aka cache)_
