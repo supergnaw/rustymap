@@ -140,10 +140,9 @@ impl Chunk {
                 "LastUpdate" => self.last_update = tag.payload_long(),
                 "sections" => {
                     self.sections = Chunk::process_sections(tag.subtags);
-                    // exit(1234);
                 }
                 "structures" => {
-                    // println!("{:?}: {:?}", tag.name, tag.tagtype); exit(42069);
+                    self.structures = Chunk::process_structures(tag.subtags);
                 }
                 "entities" => {
                     // println!("{:?}: {:?}", tag.name, tag.tagtype); exit(42069);
@@ -216,10 +215,10 @@ impl Chunk {
                         section.biomes = Chunk::process_biomes(tag.subtags);
                     }
                     "BlockLight" => {
-                        // println!("{:?}: {:?}", tag.name, tag.tagtype); exit(42069);
+                        section.block_light = Chunk::process_lights(tag.payload_byte_array());
                     }
                     "SkyLight" => {
-                        // println!("{:?}: {:?}", tag.name, tag.tagtype); exit(42069);
+                        section.sky_light = Chunk::process_lights(tag.payload_byte_array());
                     }
                     _ => {
                         if tag.tagtype != TagType::End {
@@ -539,6 +538,195 @@ impl BiomeProcessor for Chunk {
     }
 }
 
+trait LightProcessor {
+    fn process_lights(byte_array: Vec<u8>) -> [u8; 4096];
+}
+
+impl LightProcessor for Chunk {
+    fn process_lights(byte_array: Vec<u8>) -> [u8; 4096] {
+        // initialize the slice with zeros
+        let mut block_lights: [u8; 4096] = [0; 4096];
+
+        // iterate over each byte
+        for (index, &byte) in byte_array.iter().enumerate() {
+            // extract the first 4 bits
+            block_lights[index * 2] = (byte >> 4) & 0b00001111;
+
+            // extract the last 4 bits
+            block_lights[index * 2 + 1] = byte & 0b00001111;
+        }
+
+        block_lights
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Structure {
+    structure_name: String,
+    x: i32,
+    z: i32,
+}
+
+trait StructureProcessor {
+    fn process_structures(structure_tags: Vec<Tag>) -> Vec<Structure>;
+    fn process_references(reference_tags: Vec<Tag>);
+    fn process_starts(starts_tags: Vec<Tag>);
+    fn process_children(children_tags: Vec<Tag>);
+}
+
+impl StructureProcessor for Chunk {
+    fn process_structures(structure_tags: Vec<Tag>) -> Vec<Structure> {
+        let mut structures = vec![];
+
+        let mut missing: Vec<String> = vec![];
+
+        for structure in structure_tags {
+            // println!("{:?}: {:?}", structure.name, structure.tagtype);
+            match structure.name.as_str() {
+                "References" => {
+                    // println!("{:?}", structure.subtags); exit(577);
+                    Chunk::process_references(structure.subtags);
+                }
+                "starts" => {
+                    // println!("{:?}", structure.subtags); //exit(580);
+                    Chunk::process_starts(structure.subtags);
+                }
+                _ => {
+                    if structure.tagtype != TagType::End {
+                        missing.push(structure.name)
+                    }
+                }
+            }
+        }
+
+        if 0 < missing.len() {
+            println!("Missing {:?} section fields: {:?}", missing.len(), missing);
+            exit(589)
+        }
+
+        structures
+    }
+
+    fn process_references(reference_tags: Vec<Tag>) {
+        let mut missing: Vec<String> = vec![];
+
+        let mut references: Vec<String> = vec![];
+
+        for reference in reference_tags {
+            if TagType::End == reference.tagtype { continue }
+
+            let name = &reference.name;
+
+            let bit_mask = 0b0000000000000000000000000000000011111111111111111111111111111111;
+
+            let packed_coordinates = &reference.payload_long_array();
+
+            for coordinates in packed_coordinates {
+                // extract the chunk x coordinate
+                let z = coordinates >> 32 & bit_mask;
+
+                // extract the chunk z coordinate
+                let x = coordinates & bit_mask;
+            }
+
+        }
+
+        if 0 < missing.len() {
+            println!("Missing {:?} reference fields: {:?}", missing.len(), missing);
+            exit(589)
+        }
+    }
+
+    fn process_starts(starts_tags: Vec<Tag>) {
+        let mut missing: Vec<String> = vec![];
+
+        let mut starts: Vec<String> = vec![];
+
+        let mut id = String::new();
+        let mut chunk_x = 0;
+        let mut chunk_z = 0;
+
+        for start in starts_tags {
+            for subtag in &start.subtags {
+                match subtag.name.as_str() {
+                    "Children" => {
+                        // println!("Children {:?}: {:?}", subtag.name, subtag.subtags)
+                        Chunk::process_children(subtag.clone().subtags);
+                    }
+                    "ChunkX" => {
+                        chunk_x = subtag.payload_int()
+                    }
+                    "ChunkZ" => {
+                        chunk_z = subtag.payload_int()
+                    }
+                    "id" => {
+                        id = subtag.payload_string()
+                    }
+                    "references" => {
+                        println!("references {:?}: {:?}", subtag.name, subtag.payload_int())
+                    }
+                    _ => {
+                        if subtag.tagtype != TagType::End {
+                            println!("{:?}: {:?}", subtag.name, subtag.subtags);
+                            missing.push(subtag.clone().name)
+                        }
+                    }
+                }
+            }
+        }
+
+        if 0 < missing.len() {
+            println!("Missing {:?} starts.subtag fields: {:?}", missing.len(), missing);
+            exit(589)
+        }
+    }
+
+    fn process_children(children_tags: Vec<Tag>) {
+        let mut missing: Vec<String> = vec![];
+
+        let mut children: Vec<String> = vec![];
+
+        for child in children_tags {
+            for subtag in child.subtags {
+                match subtag.name.as_str() {
+                    "BB" => {}
+                    "BiomeType" => {}
+                    "D" => {}
+                    "Entrances" => {}
+                    "GD" => {}
+                    "hps" => {}
+                    "hr" => {}
+                    "id" => {}
+                    "Integrity" => {}
+                    "isBeached" => {}
+                    "IsLarge" => {}
+                    "MST" => {}
+                    "Num" => {}
+                    "O" => {}
+                    "Rot" => {}
+                    "sc" => {}
+                    "Template" => {}
+                    "tf" => {}
+                    "TPX" => {}
+                    "TPY" => {}
+                    "TPZ" => {}
+                    _ => {
+                        if subtag.tagtype != TagType::End && !missing.contains(&subtag.name){
+                            println!("{:?}: {:?}", subtag.name, subtag.tagtype);
+                            missing.push(subtag.clone().name)
+                        }
+                    }
+                }
+            }
+        }
+
+        if 0 < missing.len() {
+            println!("Missing {:?} starts.children fields: {:?}", missing.len(), missing);
+            exit(589)
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct BlockEntity {
     entity_type: String,
@@ -590,12 +778,5 @@ pub struct TileTick {
     t: i32,
     x: i32,
     y: i32,
-    z: i32,
-}
-
-#[derive(Debug, Clone)]
-pub struct Structure {
-    structure_name: Box<str>,
-    x: i32,
     z: i32,
 }

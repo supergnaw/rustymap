@@ -1,4 +1,38 @@
 # Configuration
-world_dir = "C:/Path/to/world/dir/"
-output_dir = "C:/Path/to/output/dir/"
-texture_path = "C:/Path/to/miecraft.jar/or/texture/pack.zip"
+output = "C:/Path/to/output/dir/"
+
+# Worlds Table
+[worlds]
+"world_a" = "C:/Path/to/world/dir/"
+"world 2" = "C:/Path/to/world/dir/"
+
+# Textures Table
+[textures]
+"faithful" = "C:/Path/to/resource/packs/Faithful 32x - 1.20.2.zip"
+
+# Renders Table
+[[renders]]
+world = "world_a"
+title = "Normal"
+mode = "night"
+dimension = "overworld"
+
+[[renders]]
+world = "world 2"
+title = "Nether"
+mode = "default"
+dimension = "DIM-1"
+textures = "faithful"
+
+[[renders]]
+world = "world_2"
+title = "The End"
+mode = "default"
+dimension = "DIM1"
+
+[[renders]]
+world = "invalid"
+title = "invalid"
+mode = "invalid"
+dimension = "invalid"
+textures = "invalid"

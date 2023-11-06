@@ -7,24 +7,35 @@ mod nbt;
 mod config;
 mod error;
 mod args;
+mod textures;
 
-use log::debug;
+use std::process::exit;
 use crate::world::*;
 use crate::args::*;
+use crate::config::Config;
+use crate::textures::TexturePack;
 
 fn main() {
     // parse command line arguments
     let args: Args = ArgParse::load();
 
     // load config file
-    let config = config::load(&args.config_file);
+    let config = Config::load(&args.config_file);
     dbg!(&config);
 
+    // load textures
+    let textures = TexturePack::new();
+    println!("textures: {:?}", textures);
+    exit(28);
+
     // collect world data
-    let world = World::new(&config.world_dir);
-    println!("world.regions[0].chunks[0].nbt.tags: {:?}", &world.regions[0].chunks[0].nbt.tags);
+    // let world = World::new(&config.world_dir);
 
     // we are complete
     println!("Baby's first Minecraft parser finished successfully!")
 }
 
+fn texture_path_valid(target: &str) {
+    let texture_path = String::from(target);
+    dbg!(&texture_path);
+}

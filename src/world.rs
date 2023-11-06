@@ -4,7 +4,9 @@ use std::{
         PathBuf,
     },
 };
+use std::fs::DirEntry;
 use std::process::exit;
+use regex::Regex;
 use crate::region::*;
 
 
@@ -18,27 +20,8 @@ pub struct World {
     pub level: Vec<u8>,
 }
 
-pub trait WorldLoader {
-    fn new(world_path: &str) -> World;
-
-
-    fn load_level(&mut self);
-
-
-    fn load_regions(&mut self);
-
-
-    fn load_entities(&mut self);
-
-
-    fn load_players(&mut self);
-
-
-    fn load_poi(&mut self);
-}
-
-impl WorldLoader for World {
-    fn new(world_path: &str) -> World {
+impl World {
+    pub fn new(world_path: &str) -> World {
         println!("collecting world data from: {:?}", &world_path);
 
         let mut world = World {
@@ -56,13 +39,11 @@ impl WorldLoader for World {
         world
     }
 
-
-    fn load_level(&mut self) {
+    pub fn load_level(&mut self) {
         todo!()
     }
 
-
-    fn load_regions(&mut self) {
+    pub fn load_regions(&mut self) {
         let mut region_path = PathBuf::from(&self.world_path);
         let _ = region_path.push("region");
         if !region_path.exists() || !region_path.is_dir() {
@@ -100,18 +81,126 @@ impl WorldLoader for World {
         }
     }
 
-
-    fn load_entities(&mut self) {
+    pub fn load_entities(&mut self) {
         todo!()
     }
 
-
-    fn load_players(&mut self) {
+    pub fn load_players(&mut self) {
         todo!()
     }
 
-
-    fn load_poi(&mut self) {
+    pub fn load_poi(&mut self) {
         todo!()
+    }
+}
+
+
+pub trait DeepDirectoryDriver {
+    fn default_jar_path() -> String;
+}
+
+impl DeepDirectoryDriver for World {
+    fn default_jar_path() -> String {
+        // get default home directory
+        let mut install_path= dirs::home_dir().expect("Invalid home directory");
+
+        // get windows-specific install path
+        if cfg!(target_os = "windows") {
+            for subdir in ["AppData", "Roaming", ".minecraft", "versions"] {
+                install_path.push(subdir);
+            }
+        }
+
+        // get linux-specific install path
+        if cfg!(target_os = "linux") {
+            for subdir in [".minecraft", "versions"] {
+                install_path.push(subdir);
+            }
+        }
+
+        // get macos-specific install path
+        if cfg!(target_os = "macos") {
+            for subdir in ["Library", "Application Support", "minecraft", "versions"] {
+                install_path.push(subdir);
+            }
+        }
+
+        // read directory for installed versions
+        let entries = match fs::read_dir(&install_path) {
+            Ok(results) => { results }
+            Err(err) => {
+                println!("Error reading directory: {err}\n{:?}", &install_path);
+                exit(38);
+            }
+        };
+
+        let pattern = Regex::new(r"^\d+\.\d+(\.\d)?$").expect("the unexpected");
+        let mut newest = String::from("0.0.0");
+
+        for entry in entries {
+            // filter result
+            let entry: DirEntry = entry.expect("the unexpected");
+
+            /*
+             how do I check if it's a file or directory?
+             */
+
+            // get filename
+            let filename = String::from(entry.file_name().to_str().unwrap());
+
+            // exclude not-applicable subdirs via fancy pancy rejular expression
+            newest = match pattern.is_match(&filename) {
+                // weird string trickery to do magic with numbers
+                true => { World::newer_version(&newest, &filename) }
+                false => { String::from(&newest) }
+            };
+        }
+
+        install_path.push(&newest);
+        newest.push_str(".jar");
+        install_path.push(&newest);
+
+        String::from(install_path.to_str().unwrap())
+    }
+}
+
+pub trait Versioning {
+    fn newer_version(ver_1: &str, ver_2: &str) -> String;
+    fn version_int(version_number: &str) -> usize;
+}
+
+impl Versioning for World {
+    fn newer_version(ver_1: &str, ver_2: &str) -> String {
+        let val_1 = World::version_int(&ver_1);
+        let val_2 = World::version_int(&ver_2);
+
+        match val_1 < val_2 {
+            true => String::from(ver_2),
+            false => String::from(ver_1)
+        }
+    }
+
+    fn version_int(version_number: &str) -> usize {
+        let parts: Vec<&str> = version_number.split(".").collect();
+        let mut output = 0;
+
+        match parts.clone().into_iter().count() {
+            3 => {
+                // minor releases, A.B.C
+                output += parts[0].parse::<usize>().unwrap() << 16;
+                output += parts[1].parse::<usize>().unwrap() << 8;
+                output += parts[2].parse::<usize>().unwrap();
+            }
+            2 => {
+                // major releases, A.B
+                output += parts[0].parse::<usize>().unwrap() << 16;
+                output += parts[1].parse::<usize>().unwrap() << 8;
+            }
+            _ => {
+                // invalid
+            }
+        }
+
+        output
     }
 }

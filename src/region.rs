@@ -35,8 +35,6 @@
 use std::{fs::File};
 use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
-use std::process::exit;
-// use std::process::exit;
 use crate::chunk::*;
 
 #[derive(Debug)]
@@ -107,7 +105,7 @@ impl RegionLoader for Region {
             if 0 == region.size { continue; }
             let mut chunk_buffer = vec![0u8; region.size];
             match region_file.seek(SeekFrom::Start(region.offset)) {
-                Ok(val) => {}
+                Ok(_) => {}
                 Err(err) => { format!("Failed to find file offset: {:?}", err); () }
             }
             match region_file.read_exact(&mut chunk_buffer) {
