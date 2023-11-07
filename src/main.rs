@@ -9,7 +9,6 @@ mod error;
 mod args;
 mod textures;
 
-use std::process::exit;
 use crate::world::*;
 use crate::args::*;
 use crate::config::Config;
@@ -24,9 +23,8 @@ fn main() {
     dbg!(&config);
 
     // load textures
-    let textures = TexturePack::new();
-    println!("textures: {:?}", textures);
-    exit(28);
+    let textures = TexturePack::load(config.textures.clone());
+    dbg!(&textures);
 
     // collect world data
     // let world = World::new(&config.world_dir);

@@ -71,14 +71,14 @@ impl Config {
 
         for render_conf in render_list {
             // world key is missing
-            if !config.worlds.contains_key((&render_conf.world)) {
+            if !config.worlds.contains_key(&render_conf.world) {
                 println!("ignoring world {:?}: undefined world path", &render_conf.world);
                 continue;
             }
 
             // texture key is missing
             if !config.textures.contains_key(&render_conf.textures) {
-                print!("ingoring render: unknown textures: {:?}", &render_conf.textures);
+                print!("ignoring render: unknown textures: {:?}", &render_conf.textures);
                 continue;
             }
 
@@ -99,7 +99,7 @@ impl Config {
     }
 
     fn validate_dimension(input: &str) -> bool {
-        false
+        todo!()
     }
 
     fn parse_worlds_old(input: &Value) -> HashMap<String, String> {
@@ -145,7 +145,7 @@ impl Config {
                     output.insert(String::from(key), String::from(value.as_str().unwrap()));
                 }
             }
-            None => {} // do nothhing
+            None => {} // do nothing
         }
 
         output
@@ -227,8 +227,7 @@ impl Config {
                 Ok(_) => {} // do nothing
                 Err(err) => {
                     // this is a full stop because without the output, we cannot...well, output
-                    println!("Error while creating output directory: {}", &target_dir);
-                    panic!("{err}")
+                    panic!("Error while creating output directory ({:?}): {}", &target_dir, err)
                 }
             }
         }
@@ -240,8 +239,7 @@ impl Config {
                 Ok(_) => {} // do nothing
                 Err(err) => {
                     // this is a full stop because without the output, we cannot...well, output
-                    println!("Error while creating output directory: {}", &target_dir);
-                    panic!("{err}")
+                    panic!("Error while creating output directory ({:?}): {}", &target_dir, err)
                 }
             }
         }
