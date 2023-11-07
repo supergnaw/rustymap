@@ -25,6 +25,7 @@ This is a list of things I have done/need to do which is updated as I think of t
 - [x] Decide on config structure
 - [x] Create full valid config file
 - [x] Implement default values for missing settings
+- [ ] Validate defined render dimension
 - [x] Add checks and exits for invalid inputs
 - [ ] Verify/create given output directory
 
@@ -46,9 +47,11 @@ This is a list of things I have done/need to do which is updated as I think of t
 
 ### Textures
 - [x] Check for valid default/given texture path
-- [ ] Add directory traversal methods for `.jar`/`.zip` archives
-- [ ] Add drill-down methods for extracting block textures on-demand
-- [ ] Create staging area for texture files _(aka cache)_
+- [x] Add directory traversal methods for `.jar`/`.zip` archives
+- [x] Create cache directory named by hash of texture container file
+- ~~[ ] Add drill-down methods for extracting block textures on-demand~~
+- [x] Extract all textures into cache directory
+- [x] Create staging area for texture files _(aka cache)_
 
 ### Rendering
 - [ ] Render overworld top-down
