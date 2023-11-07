@@ -7,8 +7,9 @@ pub struct NBT {
 
 impl NBT {
     pub fn new(bytes: &Vec<u8>) -> Self {
-        NBT {
-            tags: Tag::new(bytes.clone()),
+        match bytes.len() {
+            0 => NBT { tags: Tag::new(vec![99]) },
+            _ => NBT { tags: Tag::new(bytes.clone()) },
         }
     }
 }
