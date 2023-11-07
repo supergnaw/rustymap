@@ -92,14 +92,22 @@ impl Config {
         let mut validated_list: Vec<Render> = vec![];
 
         for render_conf in render_list {
-            if worlds.contains_key(&render_conf.world) { validated_list.push(render_conf) }
+            // verify target world exists--no misspellings allowed!
+            if !worlds.contains_key(&render_conf.world) { continue }
+
+            // validate dimension here
+            if !Config::validate_dimension(&worlds[&render_conf.world]) { continue }
+
+            // validation checks passed, add to validated list for output
+            validated_list.push(render_conf)
         }
+
 
         validated_list
     }
 
     fn validate_dimension(input: &str) -> bool {
-        todo!()
+        true
     }
 
     fn parse_worlds_old(input: &Value) -> HashMap<String, String> {
