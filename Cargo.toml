@@ -1,0 +1,19 @@
+[package]
+name = "rustymap"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+flate2 = "1.0.28"
+regex = "1.10.2"
+toml = { version = "0.8.6", Features = [] }
+serde_derive = "1.0.190"
+serde = "1.0.190"
+log = "0.4.20"
+rand = "0.8.5"
+dirs = { version = "5.0.1", features = [] }
+sha1 = "0.10.6"
+jars = "0.1.1"
+zip = "0.6.6"
