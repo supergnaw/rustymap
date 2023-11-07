@@ -36,6 +36,9 @@ use crate::tag::{Tag, TagType};
 #[derive(Debug, Clone)]
 pub struct Chunk {
     pub data_version: i32,
+    pub x: i32,
+    pub z: i32,
+    pub y: i32,
     pub x_pos: i32,
     pub z_pos: i32,
     pub y_pos: i32,
@@ -62,9 +65,12 @@ pub struct ChunkSection {
 }
 
 impl Chunk {
-    pub fn new(bytes: Vec<u8>) -> Self {
+    pub fn new(bytes: Vec<u8>, x: i32, z: i32) -> Self {
         let mut chunk = Chunk {
             data_version: 0,
+            x: x,
+            y: 0,
+            z: z,
             x_pos: 0,
             z_pos: 0,
             y_pos: 0,
@@ -81,7 +87,10 @@ impl Chunk {
             structures: vec![],
         };
 
-        let raw_bytes = Chunk::decompress(bytes);
+        let raw_bytes = match bytes.len() {
+            0 => vec![],
+            _ => Chunk::decompress(bytes),
+        };
 
         let nbt = NBT::new(&raw_bytes);
 
@@ -99,7 +108,7 @@ impl Chunk {
         let compression_type: usize = bytes[4] as usize;
 
         // decompress bytes
-        let raw_bytes: Vec<u8> = bytes[5..5 + size].to_vec();
+        let raw_bytes: Vec<u8> = bytes[5..5 + size - 1].to_vec();
         let mut decompressed: Vec<u8> = vec![];
         return match compression_type {
             1 => {
@@ -172,6 +181,11 @@ impl Chunk {
                     // println!("{:?}: {:?}", tag.name, tag.tagtype); exit(42069);
                 }
                 "InhabitedTime" => self.inhabited_time = tag.payload_long(),
+                "blending_data" => {
+                    for subtag in tag.subtags {
+                        // has subtags "max_section" and "min_section", both of payload int
+                    }
+                }
                 "" => {
                     // this is probably just an End tag
                 }
@@ -182,7 +196,7 @@ impl Chunk {
         }
 
         if 0 < missing.len() {
-            println!("Missing {:?} fields: {:?}", missing.len(), missing);
+            println!("Missing {:?} chunk fields: {:?}", missing.len(), missing);
             exit(42069)
         }
 
@@ -663,7 +677,7 @@ impl StructureProcessor for Chunk {
                         id = subtag.payload_string()
                     }
                     "references" => {
-                        println!("references {:?}: {:?}", subtag.name, subtag.payload_int())
+                        _ = subtag.payload_int() // I don't know what this is and it's always 0
                     }
                     _ => {
                         if subtag.tagtype != TagType::End {
@@ -700,9 +714,12 @@ impl StructureProcessor for Chunk {
                     "Integrity" => {}
                     "isBeached" => {}
                     "IsLarge" => {}
+                    "Mirror" => {} // string
                     "MST" => {}
                     "Num" => {}
                     "O" => {}
+                    "Properties" => {} // compound
+                    "Rotation" => {} // string
                     "Rot" => {}
                     "sc" => {}
                     "Template" => {}
@@ -710,6 +727,7 @@ impl StructureProcessor for Chunk {
                     "TPX" => {}
                     "TPY" => {}
                     "TPZ" => {}
+                    "VerticalPlacement" => {} // string
                     _ => {
                         if subtag.tagtype != TagType::End && !missing.contains(&subtag.name){
                             println!("{:?}: {:?}", subtag.name, subtag.tagtype);

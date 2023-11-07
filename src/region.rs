@@ -39,9 +39,13 @@ use crate::chunk::*;
 
 #[derive(Debug)]
 pub struct Region {
-    region_path: String,
-    region_headers: HashMap<String, RegionHeader>,
+    pub(crate) region_path: String,
+    region_headers: HashMap<i32, RegionHeader>,
     pub chunks: Vec<Chunk>,
+    pub region_x: i32,
+    pub x: i32,
+    pub region_z: i32,
+    pub z: i32,
 }
 
 #[derive(Debug)]
@@ -59,10 +63,17 @@ pub trait RegionLoader {
 
 impl RegionLoader for Region {
     fn new(region_path: &str) -> Self {
+        let filename_parts: Vec<&str> = region_path.split(".").collect();
+        let region_x = filename_parts[1].parse::<i32>().unwrap();
+        let region_z = filename_parts[2].parse::<i32>().unwrap();
         let mut region = Region {
             region_path: String::from(region_path),
             region_headers: HashMap::new(),
             chunks: Vec::new(),
+            region_x: region_x,
+            x: region_x * 512,
+            region_z: region_z,
+            z: region_z * 512,
         };
         region.load_chunks();
         region
@@ -92,11 +103,11 @@ impl RegionLoader for Region {
             let size = &sectors * 4096;
 
             // non-generated chunk
-            if 0 == updated && 0 == size { continue; }
+            // if 0 == updated && 0 == size { continue; }
 
             // save chunk to table header
             let chunk_header = RegionHeader { offset, updated, sectors, size, };
-            self.region_headers.insert(cur.to_string(), chunk_header);
+            self.region_headers.insert((cur as i32) / 4, chunk_header);
         }
 
         // let region = &self.region_headers["3676"];
@@ -114,12 +125,15 @@ impl RegionLoader for Region {
             }
         }
 
-        for region_header in &self.region_headers {
-            let offset = u64::from(region_header.1.offset) ;
+        let mut r: i32 = 0;
+        for (r, region_header) in &self.region_headers {
+            let offset = u64::from(region_header.offset) ;
             let _ = region_file.seek(SeekFrom::Start(offset));
-            let mut chunk_buffer = vec![0u8; region_header.1.size];
+            let mut chunk_buffer = vec![0u8; region_header.size];
             let _ = region_file.read_exact(&mut chunk_buffer);
-            let chunk = Chunk::new(chunk_buffer);
+            let x = self.x + (r % 32 * 16);
+            let z = self.z + (r / 32 * 16);
+            let chunk = Chunk::new(chunk_buffer, x, z);
             self.chunks.push(chunk);
         }
 
