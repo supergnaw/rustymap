@@ -57,11 +57,11 @@ pub struct Chunk {
 
 #[derive(Debug, Clone)]
 pub struct ChunkSection {
-    y: i8,
-    block_states: BlockStates,
-    biomes: Biomes,
-    block_light: [u8; 4096],
-    sky_light: [u8; 4096],
+    pub y: i32,
+    pub block_states: BlockStates,
+    pub biomes: Biomes,
+    pub block_light: [u8; 4096],
+    pub sky_light: [u8; 4096],
 }
 
 impl Chunk {
@@ -220,7 +220,7 @@ impl Chunk {
             for tag in compound.subtags {
                 match tag.name.as_str() {
                     "Y" => {
-                        section.y = tag.payload_byte();
+                        section.y = tag.payload_byte() as i32;
                     }
                     "block_states" => {
                         section.block_states = Chunk::process_block_states(tag.subtags);
@@ -256,14 +256,14 @@ impl Chunk {
 
 #[derive(Debug, Clone)]
 pub struct BlockStates {
-    palette: Vec<BlockState>,
-    data: [i16; 4096],
+    pub palette: Vec<BlockState>,
+    pub data: [i16; 4096],
 }
 
 #[derive(Debug, Clone)]
 pub struct BlockState {
-    name: String,
-    properties: HashMap<String, String>,
+    pub name: String,
+    pub properties: HashMap<String, String>,
 }
 
 trait BlockStateProcessor {
