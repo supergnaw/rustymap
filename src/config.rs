@@ -1,4 +1,4 @@
-use std::fs;
+use std::{env, fs};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -9,6 +9,7 @@ use crate::world::{DeepDirectoryDriver, World};
 #[derive(Debug)]
 pub struct Config {
     pub output_dir: String,
+    pub cache_dir: String,
     pub worlds: HashMap<String, String>,
     pub textures: HashMap<String, String>,
     pub renders: Vec<Render>,
@@ -28,14 +29,13 @@ impl Config {
         // initialize Config struct with defaults
         let mut config = Config {
             output_dir: "".to_string(),
+            cache_dir: env::current_dir().unwrap().to_string(),
             worlds: Default::default(),
             textures: Default::default(),
             renders: vec![],
         };
 
         let mut render_list = vec![];
-
-        println!("\n\n");
 
         // read contents of file
         let contents = fs::read_to_string(filename).unwrap();
@@ -48,7 +48,8 @@ impl Config {
             // root table
             for (key, val) in table.iter() {
                 match key.as_str() {
-                    "output" => config.output_dir = Config::validate_output(val),
+                    "output" => config.output_dir = Config::validate_directory(val),
+                    "cache" => config.cache_dir = Config::validate_directory(val),
                     "worlds" => config.worlds = Config::parse_worlds(val),
                     "textures" => config.textures = Config::parse_textures(val),
                     "renders" => render_list.extend(Config::parse_renders(val)),
@@ -60,13 +61,43 @@ impl Config {
         }
 
         // validate render list
-        // config.renders = Config::validate_renders(render_list, &config.worlds);
-        config.renders = Config::validate_renders_new(render_list, &config);
+        config.renders = Config::validate_renders(render_list, &config);
 
         config
     }
 
-    fn validate_renders_new(render_list: Vec<Render>, config: &Config) -> Vec<Render> {
+    fn validate_directory(input: &Value) -> String {
+        // convert path into string
+        let target_dir = String::from(input.to_string().as_str().trim_matches('"'));
+
+        // check if it exists
+        if !Path::new(&target_dir).exists() {
+            // it doesn't exist so we gotta create it
+            match fs::create_dir_all(&target_dir) {
+                Ok(_) => {} // do nothing
+                Err(err) => {
+                    // this is a full stop because without the output, we cannot...well, output
+                    panic!("Error while creating directory ({:?}): {}", &target_dir, err)
+                }
+            }
+        }
+
+        // make sure if it exists that it's a directory
+        else if !Path::new(&target_dir).is_dir() {
+            // it exists but as a file, so lets make the actual directory
+            match fs::create_dir_all(&target_dir) {
+                Ok(_) => {} // do nothing
+                Err(err) => {
+                    // this is a full stop because without the output, we cannot...well, output
+                    panic!("Error while creating directory ({:?}): {}", &target_dir, err)
+                }
+            }
+        }
+
+        target_dir
+    }
+
+    fn validate_renders(render_list: Vec<Render>, config: &Config) -> Vec<Render> {
         let mut validated_list: Vec<Render> = vec![];
 
         for render_conf in render_list {
@@ -88,25 +119,8 @@ impl Config {
         validated_list
     }
 
-    fn validate_renders(render_list: Vec<Render>, worlds: &HashMap<String, String>) -> Vec<Render> {
-        let mut validated_list: Vec<Render> = vec![];
-
-        for render_conf in render_list {
-            // verify target world exists--no misspellings allowed!
-            if !worlds.contains_key(&render_conf.world) { continue }
-
-            // validate dimension here
-            if !Config::validate_dimension(&worlds[&render_conf.world]) { continue }
-
-            // validation checks passed, add to validated list for output
-            validated_list.push(render_conf)
-        }
-
-
-        validated_list
-    }
-
     fn validate_dimension(input: &str) -> bool {
+        println!("input: {:?}", &input);
         true
     }
 
@@ -222,36 +236,5 @@ impl Config {
         }
 
         render
-    }
-
-    fn validate_output(input: &Value) -> String {
-        // convert path into string
-        let target_dir = String::from(input.to_string().as_str().trim_matches('"'));
-
-        // check if it exists
-        if !Path::new(&target_dir).exists() {
-            // it doesn't exist so we gotta create it
-            match fs::create_dir_all(&target_dir) {
-                Ok(_) => {} // do nothing
-                Err(err) => {
-                    // this is a full stop because without the output, we cannot...well, output
-                    panic!("Error while creating output directory ({:?}): {}", &target_dir, err)
-                }
-            }
-        }
-
-        // make sure if it exists that it's a directory
-        else if !Path::new(&target_dir).is_dir() {
-            // it exists but as a file, so lets make the actual directory
-            match fs::create_dir_all(&target_dir) {
-                Ok(_) => {} // do nothing
-                Err(err) => {
-                    // this is a full stop because without the output, we cannot...well, output
-                    panic!("Error while creating output directory ({:?}): {}", &target_dir, err)
-                }
-            }
-        }
-
-        target_dir
     }
 }
