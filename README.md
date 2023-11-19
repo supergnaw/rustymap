@@ -53,8 +53,86 @@ This is a list of things I have done/need to do which is updated as I think of t
 - [x] Extract all textures into cache directory
 - [x] Create staging area for texture files _(aka cache)_
 
+### Block States & Models
+
+_I need to figure out how to extract the blockstate and model data from the minecraft jar so as to dynamically apply the
+block textures to the render and not have to manually hard-code these values. This is the best long-term solution for
+project maintenance, but means extra work up-front._
+
+- [ ] Add `jar\assets\minecraft\blockstates\*` content to cache
+- [ ] Add `jar\assets\minecraft\models\block\*` content to cache
+- [ ] Figure out how blockstates correlate to nbt data
+- [ ] Determine how to map textures from model data
+ 
+#### Sample blockstate data: `grass_block.json`
+
+```json
+{ "variants": {
+    "snowy=false": [
+      {
+        "model": "minecraft:block/grass_block"
+      },
+      {
+        "model": "minecraft:block/grass_block",
+        "y": 90
+      },
+      {
+        "model": "minecraft:block/grass_block",
+        "y": 180
+      },
+      {
+        "model": "minecraft:block/grass_block",
+        "y": 270
+      }
+    ],
+    "snowy=true": {
+      "model": "minecraft:block/grass_block_snow"
+    }
+  }
+}
+```
+
+#### Sample model data: `grass_block.json`
+
+```json
+{   "parent": "block/block",
+    "textures": {
+        "particle": "block/dirt",
+        "bottom": "block/dirt",
+        "top": "block/grass_block_top",
+        "side": "block/grass_block_side",
+        "overlay": "block/grass_block_side_overlay"
+    },
+    "elements": [
+        {   "from": [ 0, 0, 0 ],
+            "to": [ 16, 16, 16 ],
+            "faces": {
+                "down":  { "uv": [ 0, 0, 16, 16 ], "texture": "#bottom", "cullface": "down" },
+                "up":    { "uv": [ 0, 0, 16, 16 ], "texture": "#top",    "cullface": "up", "tintindex": 0 },
+                "north": { "uv": [ 0, 0, 16, 16 ], "texture": "#side",   "cullface": "north" },
+                "south": { "uv": [ 0, 0, 16, 16 ], "texture": "#side",   "cullface": "south" },
+                "west":  { "uv": [ 0, 0, 16, 16 ], "texture": "#side",   "cullface": "west" },
+                "east":  { "uv": [ 0, 0, 16, 16 ], "texture": "#side",   "cullface": "east" }
+            }
+        },
+        {   "from": [ 0, 0, 0 ],
+            "to": [ 16, 16, 16 ],
+            "faces": {
+                "north": { "uv": [ 0, 0, 16, 16 ], "texture": "#overlay", "tintindex": 0, "cullface": "north" },
+                "south": { "uv": [ 0, 0, 16, 16 ], "texture": "#overlay", "tintindex": 0, "cullface": "south" },
+                "west":  { "uv": [ 0, 0, 16, 16 ], "texture": "#overlay", "tintindex": 0, "cullface": "west" },
+                "east":  { "uv": [ 0, 0, 16, 16 ], "texture": "#overlay", "tintindex": 0, "cullface": "east" }
+            }
+        }
+    ]
+}
+
+```
+
 ### Rendering
-- [ ] Render overworld top-down
+- [X] Render overworld chunk y-slice top-down
+- [ ] Render full overworld chunk top-down without fluid
+- [ ] Render full overworld chunk top-down with fluid
 - [ ] Render nether top-down sans roof
 - [ ] Render any isometric chunk section
 - [ ] Render any isometric full chunk
