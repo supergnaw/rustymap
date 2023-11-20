@@ -61,7 +61,7 @@ project maintenance, but means extra work up-front._
 
 - [x] Add `jar\assets\minecraft\blockstates\*` content to cache
 - [x] Add `jar\assets\minecraft\models\block\*` content to cache
-- [ ] Figure out how blockstates correlate to nbt data
+- ~~Figure out how blockstates correlate to nbt data~~
 - [ ] Determine how to map textures from model data
  
 #### Sample blockstate data: `grass_block.json`
@@ -127,6 +127,59 @@ project maintenance, but means extra work up-front._
     ]
 }
 
+```
+
+_Further thoughts: the block model json files appear to take the block name and link the faces to associated textures.
+The problem now appears to be that there isn't a completely consistent block:texture mapping structure, as some model
+data will link to other model data, which then substitutes some texture location mappings with other strings, example:_
+
+#### Sample model data: `deepslate.json`
+
+```json
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "end": "minecraft:block/deepslate_top",
+    "side": "minecraft:block/deepslate"
+  }
+}
+```
+
+#### Sample "parent" model data: `cube_column.json`
+```json
+{
+    "parent": "block/cube",
+    "textures": {
+        "particle": "#side",
+        "down": "#end",
+        "up": "#end",
+        "north": "#side",
+        "east": "#side",
+        "south": "#side",
+        "west": "#side"
+    }
+}
+```
+
+#### Sample "grandparent" model data: `cube.json`
+
+```json
+{
+    "parent": "block/block",
+    "elements": [
+        {   "from": [ 0, 0, 0 ],
+            "to": [ 16, 16, 16 ],
+            "faces": {
+                "down":  { "texture": "#down", "cullface": "down" },
+                "up":    { "texture": "#up", "cullface": "up" },
+                "north": { "texture": "#north", "cullface": "north" },
+                "south": { "texture": "#south", "cullface": "south" },
+                "west":  { "texture": "#west", "cullface": "west" },
+                "east":  { "texture": "#east", "cullface": "east" }
+            }
+        }
+    ]
+}
 ```
 
 ### Rendering
