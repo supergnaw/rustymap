@@ -59,8 +59,8 @@ _I need to figure out how to extract the blockstate and model data from the mine
 block textures to the render and not have to manually hard-code these values. This is the best long-term solution for
 project maintenance, but means extra work up-front._
 
-- [ ] Add `jar\assets\minecraft\blockstates\*` content to cache
-- [ ] Add `jar\assets\minecraft\models\block\*` content to cache
+- [x] Add `jar\assets\minecraft\blockstates\*` content to cache
+- [x] Add `jar\assets\minecraft\models\block\*` content to cache
 - [ ] Figure out how blockstates correlate to nbt data
 - [ ] Determine how to map textures from model data
  
