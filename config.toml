@@ -1,5 +1,8 @@
 # Configuration
+minecraft_jar = "C:/Path/to/minecraft.jar"
 output = "C:/Path/to/output/dir/"
+ignore_cache = false
+force_render = true
 
 # Worlds Table
 [worlds]
@@ -16,19 +19,23 @@ world = "world_a"
 title = "Normal"
 mode = "night"
 dimension = "overworld"
+textures = "faithful"
+crop = { type = "rectangle", x1 = 500, z1 = 500, x2 = -500, y2 = -500}
 
 [[renders]]
 world = "world 2"
 title = "Nether"
 mode = "default"
-dimension = "DIM-1"
-textures = "faithful"
+dimension = "Overworld"
+textures = "invalid"
+crop = { type = "circle", x = 0, z = 0, radius = 500, diameter = 1000 }
 
 [[renders]]
 world = "world_2"
-title = "The End"
+title = "DIM1"
 mode = "default"
-dimension = "DIM1"
+dimension = "The End"
+crop = { type = "square", x = 0, z = 0, size = 500 }
 
 [[renders]]
 world = "invalid"
